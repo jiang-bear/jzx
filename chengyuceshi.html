@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成语测试工具</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            display: none;
+        }
+        .setup {
+            margin-bottom: 30px;
+        }
+        input, button {
+            padding: 8px 12px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        #question {
+            font-size: 18px;
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #337ab7;
+            background-color: #f8f9fa;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        .error-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff3cd;
+        }
+        button {
+            background-color: #337ab7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #286090;
+        }
+    </style>
+</head>
+<body>
+    <h1>成语测试工具</h1>
+    
+    <div class="setup">
+        <p>请输入测试题目数量（1-100）：</p>
+        <input type="number" id="numQuestions" min="1" max="100" value="10">
+        <button onclick="startTest()">开始测试</button>
+    </div>
+
+    <div class="container">
+        <p>当前题目：<span id="currentNum">1</span>/<span id="totalNum">10</span></p>
+        <div id="question"></div>
+        <input type="text" id="answer" placeholder="请输入成语">
+        <button onclick="checkAnswer()">提交答案</button>
+        <p id="feedback"></p>
+    </div>
+
+    <div class="result">
+        <h2>测试结果</h2>
+        <p>总题数：<span id="resultTotal">0</span></p>
+        <p>答对：<span id="resultCorrect">0</span></p>
+        <p>答错：<span id="resultWrong">0</span></p>
+        <p>得分：<span id="resultScore">0</span>分</p>
+        
+        <h3>错误题目回顾：</h3>
+        <div id="errorList"></div>
+        <button onclick="restartTest()">重新测试</button>
+    </div>
+
+    <script>
+        // 内置100道题目和答案
+        const questions = [
+            {
+                question: "这里食材种类齐全，从澳大利亚龙虾、西班牙红虾，到火鸡、水鸭、不同档次的牛排，再到日本白草莓、智利青蛇果……______，应有尽有。",
+                answer: "包罗万象"
+            },
+            {
+                question: "他笔下的人物总是充满善意的力量，______的情怀和无可奈何的惆怅相交织，形成一种充沛的情感直抵人心。",
+                answer: "悲天悯人"
+            },
+            {
+                question: "兵团组建时，兵士们______，克服了各种困难，受到了人们的称颂。",
+                answer: "筚路蓝缕"
+            },
+            {
+                question: "创造力是人类最变通的工具，创造机会和创造性问题______，关键是我们能否学会使用这一工具，能否发现这机会和问题。",
+                answer: "比比皆是"
+            },
+            {
+                question: "他是一个节俭的人，衣服旧了破了，也“______”，舍不得丢弃。",
+                answer: "敝帚自珍"
+            },
+            {
+                question: "这些______的宣传方式，形式不断创新，内容日渐丰富，在合力共促下，原来“藏在深山人未识”的景点变成热门。",
+                answer: "别出心裁"
+            },
+            {
+                question: "一首歌如果跟人民大众的所思所想______，定然不可能流行开来，也不可能广为传唱。",
+                answer: "背道而驰"
+            },
+            {
+                question: "在职场中，我们应该保持______的态度，既不要妄自菲薄，也不要自以为是。",
+                answer: "不卑不亢"
+            },
+            {
+                question: "叙事性作品中的情节发展，往往是与激烈、尖锐的矛盾冲突相依相伴的，有时还要借助细节描写，若是胡编乱造，多数读者会______。",
+                answer: "不堪卒读"
+            },
+            {
+                question: "作为“中国近代史料的四大发现”之一，殷墟出土的甲骨文将中华文明的历史向前推进上千年，其价值______。",
+                answer: "不可估量"
+            },
+            {
+                question: "随着生活水平的提高，我国居民超重肥胖问题不断凸显，然而有些人却对此______，并没有认识到肥胖的危害性。",
+                answer: "不以为意"
+            },
+            {
+                question: "袁行霈始终为中华文明的传承和传播______地奔走，倾尽了全部智慧。",
+                answer: "不遗余力"
+            },
+            {
+                question: "不了解背景知识或者缺乏写作的自信心，就很容易导致一篇文章结构冗长，______。",
+                answer: "不知所云"
+            },
+            {
+                question: "如今《兰亭集序》真迹______，我们所看到的是他人的临本、摹本或刻本。",
+                answer: "不知所终"
+            },
+            {
+                question: "当前，网络文学作品的确存在质量______的现象，虽然有些作品具有独特的价值，但也不乏粗制滥造之作。",
+                answer: "参差不齐"
+            },
+            {
+                question: "村中的古宅由西北的高地向东南的低地依次而建，______。",
+                answer: "错落有致"
+            },
+            {
+                question: "中国人相信龙会带来繁荣和财富，与西方人对龙的理解______。在西方，龙代表着邪恶。",
+                answer: "大相径庭"
+            },
+            {
+                question: "也正是在那一年，他的八极拳才算是______。",
+                answer: "登堂入室"
+            },
+            {
+                question: "我国民族音乐家刘天华______，改造乐器，创作新曲，订定指法，使二胡、琵琶等民族乐器大放异彩。",
+                answer: "独辟蹊径"
+            },
+            {
+                question: "在世界自然保护联盟(IUCN)发布的最新物种红色名录中，白鲟被正式宣告灭绝，这一消息不禁让人______。",
+                answer: "扼腕叹息"
+            },
+            {
+                question: "他在传习技艺的基础上，对作品的内容和表演形式进行创新，创作出许多紧跟时代、鲜活有趣的优秀作品，令人______。",
+                answer: "耳目一新"
+            },
+            {
+                question: "我国在发展经济的同时，也要充分重视财政风险的防范，力求______，消除诱发财政危机的各种风险因素。",
+                answer: "防微杜渐"
+            },
+            {
+                question: "此事村长处理欠公，村民们在会场里闹得______，乱成一团。",
+                answer: "沸反盈天"
+            },
+            {
+                question: "无论多么天才的跳水运动员，第一次就能如此完美地控制水花的简直是______。",
+                answer: "凤毛麟角"
+            },
+            {
+                question: "在20世纪90年代，当时自我管理团队______，然而他们的失败率却很高，主要原因在于团队成员缺乏人际沟通能力。",
+                answer: "风靡一时"
+            },
+            {
+                question: "松树林里，松果密密麻麻落在地上，______。",
+                answer: "俯拾即是"
+            },
+            {
+                question: "传说盘古开天辟地，女娲用黄泥造人，日月星辰______，子民安居乐业，四海歌舞升平。",
+                answer: "各司其职"
+            },
+            {
+                question: "慢直播，______，就是这种“直播”显得比较“慢”。是对事件及其场景全程不间断地直播，无剪辑，无脚本，无旁白解说，无背景音乐，重在原生态记录。",
+                answer: "顾名思义"
+            },
+            {
+                question: "著名植物分类学家王文采院士的手绘彩色植物图，每一幅图都______，不逊于工笔画作。",
+                answer: "呼之欲出"
+            },
+            {
+                question: "诚信经营是市场主体起码的行业操守，然而一些平台商家以次充好，甚至“挂羊头卖狗肉”；一些线下商家______，打着现炒的幌子欺骗顾客。",
+                answer: "浑水摸鱼"
+            },
+            {
+                question: "《红楼梦》代表了中国古典小说的最高成就，它不但在国内______，在世界文坛上也是公认的文学名著。",
+                answer: "家喻户晓"
+            },
+            {
+                question: "他对自己的新发明______，详细地描述了每一个步骤和结果。",
+                answer: "津津乐道"
+            },
+            {
+                question: "冲锋号响了起来，战士们冒着炮火冲向敌人的阵地，这场面真是______。",
+                answer: "惊心动魄"
+            },
+            {
+                question: "由上海美术电影制片厂和B站联合出品的国产动画《中国奇谭》火了，______的评分无疑说明了该作品受欢迎的程度。",
+                answer: "居高不下"
+            },
+            {
+                question: "20世纪80年代末，西方对我国实施技术封锁，使得刚刚开始的中国信息通信技术发展______。",
+                answer: "举步维艰"
+            },
+            {
+                question: "广大航天工作者在“两弹一星”、载人航天、北斗工程等方面取得了______的成就，谱写了我国航天事业气势磅礴的发展篇章。",
+                answer: "举世瞩目"
+            },
+            {
+                question: "从第一颗卫星“东方红一号”发射升空到今天拥有自己的空间站，中国的航天事业在国际上拥有______的地位。",
+                answer: "举足轻重"
+            },
+            {
+                question: "三星堆考古表明，许多古史传说并非______，而往往是有一定史实背景的。",
+                answer: "空穴来风"
+            },
+            {
+                question: "丝路精神传承千年，______，在新时代里焕发出强大感召力、蓬勃生命力与独特吸引力。",
+                answer: "历久弥新"
+            },
+            {
+                question: "如果把你任意空投到一个城市的中心，面对______的高楼大厦，你可能会很难分清自己究竟在哪儿。",
+                answer: "鳞次栉比"
+            },
+            {
+                question: "当照相技术的普及给肖像画家造成巨大压力，有人选择______，有人选择坚守绘画阵地，结果是艺术流派百花齐放，艺术市场空前发展。",
+                answer: "另起炉灶"
+            },
+            {
+                question: "别人对你有恩，现在他遇到难处向你张口，你却避而远之，甚至______，会被乡亲们骂作“把书读进了狗肚子”。",
+                answer: "投井下石"
+            },
+            {
+                question: "这家新开的网红餐厅味道极佳，每天从早到晚顾客______。",
+                answer: "络绎不绝"
+            },
+            {
+                question: "其实放眼各行各业，科技进步改变行业发展走向的案例，已经______。",
+                answer: "屡见不鲜"
+            },
+            {
+                question: "隐性饥饿，让你的身体______，如果必需的微量营养素长期摄入不足，人体就会出现发育不良、体力下降等各种健康问题。",
+                answer: "每况愈下"
+            },
+            {
+                question: "南宋德寿宫遗址博物馆______，每天要接待很多游客，1500个预约名额，经常几分钟内就一抢而空。",
+                answer: "门庭若市"
+            },
+            {
+                question: "自《古诗十九首》以来，慨叹历史兴亡、人生变幻的悲音在中国文学长河中一直______。",
+                answer: "绵延不绝"
+            },
+            {
+                question: "再往里走，陈记椒麻鸡、付记甜皮鸭、胖哥蒸菜、老成都糖油果子、王妈手撕烤兔……各种各样的成都美食令人______。",
+                answer: "目不暇接"
+            },
+            {
+                question: "要做到“竭吾力”，就不能偷懒，最基本的表现就是踏实劳动。比如，在劳动内容选择上不______，在劳动过程中不浑水摸鱼。",
+                answer: "拈轻怕重"
+            },
+            {
+                question: "处于劣势的军队，只有______，拼死一战，才能死里逃生。",
+                answer: "破釜沉舟"
+            },
+            {
+                question: "中国与中亚考古人员______，密切合作，沿着昔日张骞的“凿空”之路，继续谱写华夏文明和中亚文明互通互鉴的华美乐章。",
+                answer: "齐心协力"
+            },
+            {
+                question: "李白既毫不掩盖他对功名事业的向往，同时又因为自己绝对无法接受那些取得富贵利禄的附加条件而对此______。",
+                answer: "弃若敝屣"
+            },
+            {
+                question: "起初他很傲慢，等看到我的名片后，立即打躬作揖，如此______的丑态令我不敢恭维。",
+                answer: "前倨后恭"
+            },
+            {
+                question: "你看到或看不到的不粘锅划痕，一直在向食物里释放有害物质；我们不知道的有毒塑料，______地影响着你的健康。",
+                answer: "悄无声息"
+            },
+            {
+                question: "他们也深受现场气氛的感染，抛出了一个又一个______的问题并作了鞭辟入里的评点，令大家醍醐灌顶。",
+                answer: "切中肯綮"
+            },
+            {
+                question: "不少人已经很久没有翻开过一本纸质书进行阅读了，______的是沉迷于手机短视频，热衷于在网上刷小红书，习惯于在有声小说里废寝忘食。",
+                answer: "取而代之"
+            },
+            {
+                question: "好的口碑不是短时间内能形成的，需要______，而且创意宣介、服务品质一样都不能少。",
+                answer: "日积月累"
+            },
+            {
+                question: "作为重要的文化资源和文化资本，春节庙会、清明祭祖、端午赛龙舟、重阳登高等传统民俗活动开展得______。",
+                answer: "如火如荼"
+            },
+            {
+                question: "华罗庚的一席话，使他______，脑筋顿时开窍，好多以前百思不得其解的问题，一下子完全明白了。",
+                answer: "如坐春风"
+            },
+            {
+                question: "历史上的文人雅集，有时是官方组织的，更多的是______的文人自觉的组合。",
+                answer: "声气相投"
+            },
+            {
+                question: "情感放大是中国特色节目中不可或缺的元素，《追寻》将百封家书用震撼人心的讲述和______的吟诵传递出人间至美之情。",
+                answer: "声情并茂"
+            },
+            {
+                question: "创新的意义不仅为寻求一霎间的______，更要将创新融入企业文化中，使其成为企业可持续增长战略的一部分。",
+                answer: "石破天惊"
+            },
+            {
+                question: "科技报国，淡泊名利，无怨无悔，这是陈俊武______的人生追求。",
+                answer: "矢志不渝"
+            },
+            {
+                question: "如果平时注意积累，写起文章来才能感到如鱼得水，______。",
+                answer: "水到渠成"
+            },
+            {
+                question: "苏轼最令人羡慕的一点，就是不论走到哪里，都能______，到什么山上唱什么歌，去什么地方就吃什么地方的食材。",
+                answer: "随遇而安"
+            },
+            {
+                question: "单靠流量加持的网红效应并不可持续，西安的“摔碗酒”、重庆的轻轨穿楼等“网红”，大多只是______。",
+                answer: "昙花一现"
+            },
+            {
+                question: "这一原因导致了通常偏于保守的已婚妇女与思想极为自由的单身妇女之间的______。",
+                answer: "天壤之别"
+            },
+            {
+                question: "我们研究历史不是为了复古，而是要借鉴历史，______。",
+                answer: "推陈出新"
+            },
+            {
+                question: "他的演说使得群众的情绪更加高涨，起到了______的作用。",
+                answer: "推波助澜"
+            },
+            {
+                question: "凡有井水处，皆能诵柳词，柳永在市井中的声望连帝王将相都______。",
+                answer: "望尘莫及"
+            },
+            {
+                question: "许多人一事无成，就是因为他们低估了自我的本事，______，以致缩小了自我的成就。",
+                answer: "妄自菲薄"
+            },
+            {
+                question: "从宏观来看，人类所关心的大多数问题都可以说是无关紧要的，甚至是______的。",
+                answer: "微不足道"
+            },
+            {
+                question: "吸烟有害绝非______，不幸的是，在我国许多人严重地低估了吸烟的危害性。",
+                answer: "危言耸听"
+            },
+            {
+                question: "文明旅游、绿色旅游等理念获得越来越多的认同，人人支持、人人参与文明旅游这件事在国内已经______。",
+                answer: "蔚然成风"
+            },
+            {
+                question: "你明明做错事，还找这么多理由辩解，这样______，只会让大家更难原谅你。",
+                answer: "文过饰非"
+            },
+            {
+                question: "为了扭转劣势，他带领全体员工力拼业绩，真是______、艰苦备尝啊！",
+                answer: "卧薪尝胆"
+            },
+            {
+                question: "四川广汉三星堆遗址考古传来捷报，大量新出土文物以______的事实，澄清了以往古代巴蜀研究的一些迷失。",
+                answer: "无可辩驳"
+            },
+            {
+                question: "近年来，有许多文艺工作者活跃在基层，创作了不少让老百姓______的歌曲、小品、影视剧等文艺作品。",
+                answer: "喜闻乐见"
+            },
+            {
+                question: "他一生长期被贬在外，对来自各方面的打击和挫折早已______，不惊恐，不退缩，任其自然，坦然处之。",
+                answer: "习以为常"
+            },
+            {
+                question: "他专门选定有历史意义又______，但仍有探查价值的人文风景，其落笔成画时必要求历史情感结合艺术创意。",
+                answer: "鲜为人知"
+            },
+            {
+                question: "网络上，水军、黑公关等顽瘴痼疾反复______，淫秽色情、赌博诈骗信息屡禁不绝，群众对此反映强烈，普遍期待开展一场网络“大扫除”。",
+                answer: "兴风作浪"
+            },
+            {
+                question: "改革开放的四十多年里，他们通过______，带出了许多卓越的学生，让经典演出也形成了一个长江后浪推前浪的谱系。",
+                answer: "言传身教"
+            },
+            {
+                question: "在长达一千年的壁画艺术创造中，壁画上的舞姿不是______的，它是随着历史的变迁而逐渐变化与发展的。",
+                answer: "一成不变"
+            },
+            {
+                question: "周汝昌先生心明眼亮，______地指出唯一的门径就是把《红楼梦》的版本研究搞深搞透。",
+                answer: "一针见血"
+            },
+            {
+                question: "讲仁爱，重民本，守诚信，崇正义，求大同……这些精神内涵在岁月洗礼下______，成为中华民族的基因血脉。",
+                answer: "一脉相传"
+            },
+            {
+                question: "北京的天坛和上海博物馆有______之妙，都采用了天圆地方的结构。",
+                answer: "异曲同工"
+            },
+            {
+                question: "水加上二氧化碳就能合成淀粉，这个看似______的想法，被中国科学家实现了，令国际科学界大为惊叹。",
+                answer: "异想天开"
+            },
+            {
+                question: "ChatGPT是一种全新聊天机器人模型，它能够让撰写论文，创作诗歌、故事，甚至检查程序错误都变得______。",
+                answer: "易如反掌"
+            },
+            {
+                question: "公园开放还应遵循______的原则，比如高速公路沿线的公园开放要慎重，历史名园以及需要保护文物的公园还应保留围墙等设置。",
+                answer: "因地制宜"
+            },
+            {
+                question: "近日，舞剧《张骞》亮相“新时代舞台艺术优秀剧目展演”，以其______的情节、激情飞扬的表演、绚丽多彩的舞美……让观众们赞叹不已。",
+                answer: "引人入胜"
+            },
+            {
+                question: "该工程的吨级中试装置已经顺利建成，目前工程化测试正在______地展开，为下一步规模化生产做准备。",
+                answer: "有条不紊"
+            },
+            {
+                question: "他早就提出要自力更生以自救，不主张过分依赖外力，确是______。",
+                answer: "真知灼见"
+            },
+            {
+                question: "书念了不少，大道理也懂得不少，但却做不来，用书面话来讲，就是在知行转化上出了差错，做不到______。",
+                answer: "知行合一"
+            },
+            {
+                question: "儒学家们并不层层追问“是什么、为什么”，而是______地告诉你“做什么、怎么做”，并且其所探寻的问题多半集中在社会人生方面。",
+                answer: "直截了当"
+            },
+            {
+                question: "这部不朽的著作不只是描写了一个贵族之家走向衰败的三代生活，而且描绘出封建贵族阶级______的生活，暗示了封建时代的必然消亡。",
+                answer: "纸醉金迷"
+            },
+            {
+                question: "伴随水电站建设成长起来的年轻一代机电专家们冒严寒，顶酷暑，在建设工地上______，把青春理想融入水电报国的实践。",
+                answer: "栉风沐雨"
+            },
+            {
+                question: "这里______，英才辈出。别看村子小，却曾孕育出一些风云人物。",
+                answer: "钟灵毓秀"
+            },
+            {
+                question: "年少的杜甫，面对科举不第，并没有______，而是选择“清狂壮游”。",
+                answer: "自怨自艾"
+            },
+            {
+                question: "精于谋划小圈子的人，拉帮结派，编织自己的关系网，以使自己______，如鱼得水，结果却是作茧自缚。",
+                answer: "左右逢源"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let selectedQuestions = [];
+        let userAnswers = [];
+        let totalQuestions = 10;
+
+        function startTest() {
+            const numInput = document.getElementById('numQuestions');
+            totalQuestions = parseInt(numInput.value);
+            
+            if (isNaN(totalQuestions) || totalQuestions < 1 || totalQuestions > 100) {
+                alert('请输入1-100之间的数字');
+                return;
+            }
+
+            // 随机选择不重复的题目
+            selectedQuestions = [];
+            const shuffled = [...questions].sort(() => 0.5 - Math.random());
+            selectedQuestions = shuffled.slice(0, totalQuestions);
+            
+            currentQuestionIndex = 0;
+            userAnswers = [];
+
+            document.querySelector('.setup').style.display = 'none';
+            document.querySelector('.container').style.display = 'block';
+            document.querySelector('.result').style.display = 'none';
+            
+            updateQuestionDisplay();
+        }
+
+        function updateQuestionDisplay() {
+            if (currentQuestionIndex < selectedQuestions.length) {
+                document.getElementById('currentNum').textContent = currentQuestionIndex + 1;
+                document.getElementById('totalNum').textContent = totalQuestions;
+                document.getElementById('question').textContent = selectedQuestions[currentQuestionIndex].question;
+                document.getElementById('answer').value = '';
+                document.getElementById('feedback').textContent = '';
+            } else {
+                showResult();
+            }
+        }
+
+        function checkAnswer() {
+            const userAnswer = document.getElementById('answer').value.trim();
+            const correctAnswer = selectedQuestions[currentQuestionIndex].answer;
+            
+            userAnswers.push({
+                question: selectedQuestions[currentQuestionIndex].question,
+                userAnswer: userAnswer,
+                correctAnswer: correctAnswer,
+                isCorrect: userAnswer === correctAnswer
+            });
+
+            if (userAnswer === correctAnswer) {
+                document.getElementById('feedback').textContent = '正确！';
+                document.getElementById('feedback').style.color = 'green';
+            } else {
+                document.getElementById('feedback').textContent = `错误，正确答案是：${correctAnswer}`;
+                document.getElementById('feedback').style.color = 'red';
+            }
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                updateQuestionDisplay();
+            }, 600);
+        }
+
+        function showResult() {
+            document.querySelector('.container').style.display = 'none';
+            const resultDiv = document.querySelector('.result');
+            resultDiv.style.display = 'block';
+
+            const correctCount = userAnswers.filter(a => a.isCorrect).length;
+            const wrongCount = userAnswers.length - correctCount;
+            const score = Math.round((correctCount / userAnswers.length) * 100);
+
+            document.getElementById('resultTotal').textContent = userAnswers.length;
+            document.getElementById('resultCorrect').textContent = correctCount;
+            document.getElementById('resultWrong').textContent = wrongCount;
+            document.getElementById('resultScore').textContent = score;
+
+            const errorList = document.getElementById('errorList');
+            errorList.innerHTML = '';
+
+            userAnswers.forEach((item, index) => {
+                if (!item.isCorrect) {
+                    const errorItem = document.createElement('div');
+                    errorItem.className = 'error-item';
+                    errorItem.innerHTML = `
+                        <p>题目 ${index + 1}：${item.question}</p>
+                        <p>你的答案：${item.userAnswer || '未作答'}</p>
+                        <p>正确答案：${item.correctAnswer}</p>
+                    `;
+                    errorList.appendChild(errorItem);
+                }
+            });
+        }
+
+        function restartTest() {
+            document.querySelector('.result').style.display = 'none';
+            document.querySelector('.setup').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
